@@ -14,41 +14,56 @@ import (
 type Purchase struct {
     ID bson.ObjectId `bson:"_id,omitempty" json:"id"`
     Items []string  `bson:"Items" json:"items"`
-    Bought bool     `json:"bought"`
+    Bought bool     `bson: "bought" json:"bought"`
 }
 
-func setUpConnection() *mgo.Collection{
+func main() {
     session, err := mgo.Dial(os.Getenv("MONGODB_URI"))
     if err != nil {
         panic(err)
     }
-
-    c := session.DB(os.Getenv("MONGODB_DB")).C(os.Getenv("MONGODB_COLLECTION"))
-    return c
-}
-
-func main() {
-
     router := mux.NewRouter().StrictSlash(true)
-    router.HandleFunc("/", GetPurchaseList)
-    router.HandleFunc("/todos", PostPurchaceItem)
-    router.HandleFunc("/todos/{todoId}", UpdatePurchase)
+    router.HandleFunc("/", GetPurchaseList(session))
+    router.HandleFunc("/add", PostPurchaceItem(session)).Methods("POST")
+    router.HandleFunc("/{purchaseId}/bought", UpdatePurchase(session)).Methods("POST")
     log.Fatal(http.ListenAndServe(":8080", router))
 }
 
-func GetPurchaseList(w http.ResponseWriter, r *http.Request) {
-    var result []Purchase
-    c := setUpConnection()
-    c.Find(bson.M{}).All(&result)
-    json.NewEncoder(w).Encode(result)
+func GetPurchaseList(s *mgo.Session) func(w http.ResponseWriter, r *http.Request) {
+    return func (w http.ResponseWriter, r *http.Request) {
+        session := s.Copy()
+        defer session.Close()
+        c := session.DB(os.Getenv("MONGODB_DB")).C(os.Getenv("MONGODB_COLLECTION"))
+        var result []Purchase
+        c.Find(bson.M{"bought": true}).All(&result)
+        json.NewEncoder(w).Encode(result)
+    }
 }
 
-func PostPurchaceItem(w http.ResponseWriter, r *http.Request) {
-    fmt.Fprintln(w, "Todo Index!")
+func PostPurchaceItem(s *mgo.Session) func(w http.ResponseWriter, r *http.Request) {
+    return func(w http.ResponseWriter, r *http.Request) {
+        session := s.Copy()
+        defer session.Close()
+        c := session.DB(os.Getenv("MONGODB_DB")).C(os.Getenv("MONGODB_COLLECTION"))
+        var purchase Purchase
+        decoder := json.NewDecoder(r.Body)
+        decoder.Decode(&purchase)
+        c.Insert(&purchase)
+        w.WriteHeader(http.StatusCreated)
+    }
 }
 
-func UpdatePurchase(w http.ResponseWriter, r *http.Request) {
-    vars := mux.Vars(r)
-    todoId := vars["todoId"]
-    fmt.Fprintln(w, "Todo show:", todoId)
+func UpdatePurchase(s *mgo.Session) func(w http.ResponseWriter, r *http.Request) {
+    return func(w http.ResponseWriter, r *http.Request) {
+        session := s.Copy()
+        defer session.Close()
+        c := session.DB(os.Getenv("MONGODB_DB")).C(os.Getenv("MONGODB_COLLECTION"))
+        vars := mux.Vars(r)
+        purchaseId := vars["purchaseId"]
+        c.UpdateId(
+            bson.ObjectIdHex(purchaseId),
+            bson.M{"$set": bson.M{"bought": true}})
+        w.WriteHeader(http.StatusOK)
+        fmt.Fprintln(w, bson.ObjectIdHex(purchaseId))
+    }
 }
