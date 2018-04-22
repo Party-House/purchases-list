@@ -26,7 +26,7 @@ func main() {
     router.HandleFunc("/", GetPurchaseList(session))
     router.HandleFunc("/add", PostPurchaceItem(session)).Methods("POST")
     router.HandleFunc("/{purchaseId}/bought", UpdatePurchase(session)).Methods("POST")
-    log.Fatal(http.ListenAndServe(":8080", router))
+    log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), router))
 }
 
 func GetPurchaseList(s *mgo.Session) func(w http.ResponseWriter, r *http.Request) {
