@@ -35,7 +35,7 @@ func GetPurchaseList(s *mgo.Session) func(w http.ResponseWriter, r *http.Request
         defer session.Close()
         c := session.DB(os.Getenv("MONGODB_DB")).C(os.Getenv("MONGODB_COLLECTION"))
         var result []Purchase
-        c.Find(bson.M{"bought": true}).All(&result)
+        c.Find(bson.M{"bought": false}).All(&result)
         json.NewEncoder(w).Encode(result)
     }
 }
