@@ -1,1 +1,1 @@
-“web: purchases-list”
+web: purchases-list
