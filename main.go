@@ -9,6 +9,7 @@ import (
     "gopkg.in/mgo.v2"
     "gopkg.in/mgo.v2/bson"
     "github.com/gorilla/mux"
+    "github.com/rs/cors"
 )
 
 type Purchase struct {
@@ -26,7 +27,8 @@ func main() {
     router.HandleFunc("/", GetPurchaseList(session))
     router.HandleFunc("/add", PostPurchaceItem(session)).Methods("POST")
     router.HandleFunc("/{purchaseId}/bought", UpdatePurchase(session)).Methods("POST")
-    log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), router))
+    handler := cors.Default().Handler(router)
+    log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), handler))
 }
 
 func GetPurchaseList(s *mgo.Session) func(w http.ResponseWriter, r *http.Request) {
