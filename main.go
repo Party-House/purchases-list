@@ -24,7 +24,7 @@ func main() {
         panic(err)
     }
     router := mux.NewRouter().StrictSlash(true)
-    router.HandleFunc("/", GetPurchaseList(session))
+    router.HandleFunc("/get-list", GetPurchaseList(session))
     router.HandleFunc("/add", PostPurchaceItem(session)).Methods("POST")
     router.HandleFunc("/{purchaseId}/bought", UpdatePurchase(session)).Methods("POST")
     handler := cors.Default().Handler(router)
